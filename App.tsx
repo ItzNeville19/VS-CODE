@@ -15,13 +15,16 @@ import AIScreen from './src/screens/AIScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 
 // Theme
-import { theme } from './src/theme/theme';
+import { ThemeProvider, useTheme } from './src/context/ThemeContext';
+import { lightTheme, darkTheme } from './src/theme/theme';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 const queryClient = new QueryClient();
 
 function TabNavigator() {
+  const { theme, isDark } = useTheme();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -45,11 +48,11 @@ function TabNavigator() {
           return <Ionicons name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: 'gray',
+        tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
         tabBarStyle: {
-          backgroundColor: '#ffffff',
+          backgroundColor: theme.colors.surface,
           borderTopWidth: 1,
-          borderTopColor: '#f0f0f0',
+          borderTopColor: theme.colors.outline,
           paddingBottom: 5,
           paddingTop: 5,
           height: 60,
@@ -66,17 +69,27 @@ function TabNavigator() {
   );
 }
 
+function AppContent() {
+  const { theme, isDark } = useTheme();
+
+  return (
+    <PaperProvider theme={theme}>
+      <NavigationContainer theme={theme}>
+        <StatusBar style={isDark ? 'light' : 'dark'} />
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="Main" component={TabNavigator} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </PaperProvider>
+  );
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <PaperProvider theme={theme}>
-        <NavigationContainer>
-          <StatusBar style="auto" />
-          <Stack.Navigator screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="Main" component={TabNavigator} />
-          </Stack.Navigator>
-        </NavigationContainer>
-      </PaperProvider>
+      <ThemeProvider>
+        <AppContent />
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

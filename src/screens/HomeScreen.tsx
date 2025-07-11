@@ -7,12 +7,14 @@ import {
   Text,
   TouchableOpacity,
   Dimensions,
+  Modal,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { format, startOfDay, addDays } from 'date-fns';
+import { useTheme } from '../context/ThemeContext';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 interface Event {
   id: string;
@@ -31,10 +33,12 @@ interface Task {
 }
 
 const HomeScreen: React.FC = () => {
+  const { theme, isDark, toggleTheme, isAutoTheme } = useTheme();
   const [greeting, setGreeting] = useState('');
   const [todayEvents, setTodayEvents] = useState<Event[]>([]);
   const [upcomingTasks, setUpcomingTasks] = useState<Task[]>([]);
   const [aiInsight, setAiInsight] = useState('');
+  const [showThemeModal, setShowThemeModal] = useState(false);
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -53,21 +57,21 @@ const HomeScreen: React.FC = () => {
         title: 'Team Standup',
         time: '9:00 AM',
         type: 'meeting',
-        color: '#4285F4',
+        color: theme.colors.primary,
       },
       {
         id: '2',
         title: 'Review Q4 Goals',
         time: '2:00 PM',
         type: 'task',
-        color: '#34A853',
+        color: theme.colors.secondary,
       },
       {
         id: '3',
         title: 'Client Call',
         time: '4:30 PM',
         type: 'meeting',
-        color: '#FBBC04',
+        color: theme.colors.tertiary,
       },
     ]);
 
@@ -96,30 +100,30 @@ const HomeScreen: React.FC = () => {
     ]);
 
     setAiInsight('Based on your calendar, you have 3 hours of focused time this afternoon. Consider scheduling your most important tasks during this period.');
-  }, []);
+  }, [theme.colors]);
 
   const renderEventCard = (event: Event) => (
-    <TouchableOpacity key={event.id} style={styles.eventCard}>
+    <TouchableOpacity key={event.id} style={[styles.eventCard, { backgroundColor: theme.colors.cardBackground, borderColor: theme.colors.cardBorder }]}>
       <View style={[styles.eventIndicator, { backgroundColor: event.color }]} />
       <View style={styles.eventContent}>
-        <Text style={styles.eventTitle}>{event.title}</Text>
-        <Text style={styles.eventTime}>{event.time}</Text>
+        <Text style={[styles.eventTitle, { color: theme.colors.onSurface }]}>{event.title}</Text>
+        <Text style={[styles.eventTime, { color: theme.colors.onSurfaceVariant }]}>{event.time}</Text>
       </View>
-      <Ionicons name="chevron-forward" size={20} color="#9AA0A6" />
+      <Ionicons name="chevron-forward" size={20} color={theme.colors.onSurfaceVariant} />
     </TouchableOpacity>
   );
 
   const renderTaskCard = (task: Task) => (
-    <TouchableOpacity key={task.id} style={styles.taskCard}>
-      <TouchableOpacity style={[styles.checkbox, task.completed && styles.checkboxCompleted]}>
+    <TouchableOpacity key={task.id} style={[styles.taskCard, { backgroundColor: theme.colors.cardBackground, borderColor: theme.colors.cardBorder }]}>
+      <TouchableOpacity style={[styles.checkbox, task.completed && { backgroundColor: theme.colors.success, borderColor: theme.colors.success }]}>
         {task.completed && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
       </TouchableOpacity>
       <View style={styles.taskContent}>
-        <Text style={[styles.taskTitle, task.completed && styles.taskCompleted]}>
+        <Text style={[styles.taskTitle, task.completed && styles.taskCompleted, { color: theme.colors.onSurface }]}>
           {task.title}
         </Text>
         {task.dueDate && (
-          <Text style={styles.taskDueDate}>
+          <Text style={[styles.taskDueDate, { color: theme.colors.onSurfaceVariant }]}>
             Due {format(task.dueDate, 'MMM d')}
           </Text>
         )}
@@ -131,51 +135,120 @@ const HomeScreen: React.FC = () => {
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'high':
-        return '#EA4335';
+        return theme.colors.error;
       case 'medium':
-        return '#FBBC04';
+        return theme.colors.warning;
       case 'low':
-        return '#34A853';
+        return theme.colors.success;
       default:
-        return '#9AA0A6';
+        return theme.colors.onSurfaceVariant;
     }
   };
 
+  const renderThemeModal = () => (
+    <Modal
+      visible={showThemeModal}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setShowThemeModal(false)}
+    >
+      <TouchableOpacity 
+        style={styles.modalOverlay} 
+        activeOpacity={1} 
+        onPress={() => setShowThemeModal(false)}
+      >
+        <View style={[styles.themeModal, { backgroundColor: theme.colors.surface }]}>
+          <Text style={[styles.themeModalTitle, { color: theme.colors.onSurface }]}>Theme Settings</Text>
+          
+          <TouchableOpacity 
+            style={[styles.themeOption, isAutoTheme && styles.themeOptionSelected]} 
+            onPress={() => {
+              // Auto theme logic
+              setShowThemeModal(false);
+            }}
+          >
+            <Ionicons name="phone-portrait" size={24} color={theme.colors.primary} />
+            <Text style={[styles.themeOptionText, { color: theme.colors.onSurface }]}>Auto (System)</Text>
+            {isAutoTheme && <Ionicons name="checkmark" size={20} color={theme.colors.primary} />}
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.themeOption, !isDark && !isAutoTheme && styles.themeOptionSelected]} 
+            onPress={() => {
+              toggleTheme();
+              setShowThemeModal(false);
+            }}
+          >
+            <Ionicons name="sunny" size={24} color={theme.colors.warning} />
+            <Text style={[styles.themeOptionText, { color: theme.colors.onSurface }]}>Light</Text>
+            {!isDark && !isAutoTheme && <Ionicons name="checkmark" size={20} color={theme.colors.primary} />}
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.themeOption, isDark && !isAutoTheme && styles.themeOptionSelected]} 
+            onPress={() => {
+              toggleTheme();
+              setShowThemeModal(false);
+            }}
+          >
+            <Ionicons name="moon" size={24} color={theme.colors.info} />
+            <Text style={[styles.themeOptionText, { color: theme.colors.onSurface }]}>Dark</Text>
+            {isDark && !isAutoTheme && <Ionicons name="checkmark" size={20} color={theme.colors.primary} />}
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
+
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header */}
+        {/* Enhanced Header with Advanced Gradients */}
         <LinearGradient
-          colors={['#4285F4', '#34A853']}
+          colors={[theme.colors.gradientStart, theme.colors.gradientEnd, theme.colors.tertiary]}
           style={styles.header}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
+          locations={[0, 0.7, 1]}
         >
           <View style={styles.headerContent}>
             <Text style={styles.greeting}>{greeting}</Text>
             <Text style={styles.userName}>Alex</Text>
             <Text style={styles.date}>{format(new Date(), 'EEEE, MMMM d')}</Text>
           </View>
-          <TouchableOpacity style={styles.profileButton}>
-            <Ionicons name="person-circle" size={40} color="#FFFFFF" />
+          <TouchableOpacity 
+            style={styles.profileButton} 
+            onPress={() => setShowThemeModal(true)}
+          >
+            <LinearGradient
+              colors={['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.1)']}
+              style={styles.profileGradient}
+            >
+              <Ionicons name="person-circle" size={40} color="#FFFFFF" />
+            </LinearGradient>
           </TouchableOpacity>
         </LinearGradient>
 
-        {/* AI Insight Card */}
-        <View style={styles.insightCard}>
-          <View style={styles.insightHeader}>
-            <Ionicons name="sparkles" size={24} color="#4285F4" />
-            <Text style={styles.insightTitle}>AI Insight</Text>
-          </View>
-          <Text style={styles.insightText}>{aiInsight}</Text>
+        {/* Enhanced AI Insight Card */}
+        <View style={[styles.insightCard, { backgroundColor: theme.colors.cardBackground, borderColor: theme.colors.cardBorder }]}>
+          <LinearGradient
+            colors={[theme.colors.primary + '20', theme.colors.secondary + '10']}
+            style={styles.insightGradient}
+          >
+            <View style={styles.insightHeader}>
+              <Ionicons name="sparkles" size={24} color={theme.colors.primary} />
+              <Text style={[styles.insightTitle, { color: theme.colors.onSurface }]}>AI Insight</Text>
+            </View>
+            <Text style={[styles.insightText, { color: theme.colors.onSurfaceVariant }]}>{aiInsight}</Text>
+          </LinearGradient>
         </View>
 
         {/* Today's Schedule */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Today's Schedule</Text>
+            <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Today's Schedule</Text>
             <TouchableOpacity>
-              <Text style={styles.seeAllText}>See all</Text>
+              <Text style={[styles.seeAllText, { color: theme.colors.primary }]}>See all</Text>
             </TouchableOpacity>
           </View>
           {todayEvents.map(renderEventCard)}
@@ -184,39 +257,50 @@ const HomeScreen: React.FC = () => {
         {/* Upcoming Tasks */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Upcoming Tasks</Text>
+            <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Upcoming Tasks</Text>
             <TouchableOpacity>
-              <Text style={styles.seeAllText}>See all</Text>
+              <Text style={[styles.seeAllText, { color: theme.colors.primary }]}>See all</Text>
             </TouchableOpacity>
           </View>
           {upcomingTasks.map(renderTaskCard)}
         </View>
 
-        {/* Quick Actions */}
+        {/* Enhanced Quick Actions */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Quick Actions</Text>
           <View style={styles.quickActions}>
             <TouchableOpacity style={styles.quickAction}>
-              <View style={[styles.quickActionIcon, { backgroundColor: '#4285F4' }]}>
+              <LinearGradient
+                colors={[theme.colors.primary, theme.colors.primary + 'CC']}
+                style={styles.quickActionIcon}
+              >
                 <Ionicons name="add" size={24} color="#FFFFFF" />
-              </View>
-              <Text style={styles.quickActionText}>New Event</Text>
+              </LinearGradient>
+              <Text style={[styles.quickActionText, { color: theme.colors.onSurfaceVariant }]}>New Event</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.quickAction}>
-              <View style={[styles.quickActionIcon, { backgroundColor: '#34A853' }]}>
+              <LinearGradient
+                colors={[theme.colors.secondary, theme.colors.secondary + 'CC']}
+                style={styles.quickActionIcon}
+              >
                 <Ionicons name="checkmark" size={24} color="#FFFFFF" />
-              </View>
-              <Text style={styles.quickActionText}>New Task</Text>
+              </LinearGradient>
+              <Text style={[styles.quickActionText, { color: theme.colors.onSurfaceVariant }]}>New Task</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.quickAction}>
-              <View style={[styles.quickActionIcon, { backgroundColor: '#FBBC04' }]}>
+              <LinearGradient
+                colors={[theme.colors.tertiary, theme.colors.tertiary + 'CC']}
+                style={styles.quickActionIcon}
+              >
                 <Ionicons name="sparkles" size={24} color="#FFFFFF" />
-              </View>
-              <Text style={styles.quickActionText}>AI Assistant</Text>
+              </LinearGradient>
+              <Text style={[styles.quickActionText, { color: theme.colors.onSurfaceVariant }]}>AI Assistant</Text>
             </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
+
+      {renderThemeModal()}
     </SafeAreaView>
   );
 };
@@ -224,15 +308,15 @@ const HomeScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
   },
   header: {
     paddingHorizontal: 20,
     paddingTop: 20,
-    paddingBottom: 30,
+    paddingBottom: 40,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
+    minHeight: 200,
   },
   headerContent: {
     flex: 1,
@@ -243,7 +327,7 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   userName: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginTop: 4,
@@ -257,17 +341,27 @@ const styles = StyleSheet.create({
   profileButton: {
     marginTop: 10,
   },
+  profileGradient: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   insightCard: {
     margin: 20,
-    marginTop: -15,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
+    marginTop: -20,
+    borderRadius: 20,
+    borderWidth: 1,
+    overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  insightGradient: {
+    padding: 20,
   },
   insightHeader: {
     flexDirection: 'row',
@@ -277,12 +371,10 @@ const styles = StyleSheet.create({
   insightTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#202124',
     marginLeft: 8,
   },
   insightText: {
     fontSize: 14,
-    color: '#5F6368',
     lineHeight: 20,
   },
   section: {
@@ -298,25 +390,23 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#202124',
   },
   seeAllText: {
     fontSize: 14,
-    color: '#4285F4',
     fontWeight: '500',
   },
   eventCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 8,
     flexDirection: 'row',
     alignItems: 'center',
+    borderWidth: 1,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
   },
   eventIndicator: {
     width: 4,
@@ -330,39 +420,32 @@ const styles = StyleSheet.create({
   eventTitle: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#202124',
     marginBottom: 4,
   },
   eventTime: {
     fontSize: 14,
-    color: '#5F6368',
   },
   taskCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 8,
     flexDirection: 'row',
     alignItems: 'center',
+    borderWidth: 1,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
   },
   checkbox: {
     width: 24,
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: '#DADCE0',
     marginRight: 12,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  checkboxCompleted: {
-    backgroundColor: '#34A853',
-    borderColor: '#34A853',
   },
   taskContent: {
     flex: 1,
@@ -370,16 +453,14 @@ const styles = StyleSheet.create({
   taskTitle: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#202124',
     marginBottom: 4,
   },
   taskCompleted: {
     textDecorationLine: 'line-through',
-    color: '#9AA0A6',
+    opacity: 0.6,
   },
   taskDueDate: {
     fontSize: 12,
-    color: '#5F6368',
   },
   priorityIndicator: {
     width: 8,
@@ -405,8 +486,44 @@ const styles = StyleSheet.create({
   },
   quickActionText: {
     fontSize: 12,
-    color: '#5F6368',
     fontWeight: '500',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  themeModal: {
+    width: width * 0.8,
+    borderRadius: 20,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  themeModalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  themeOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  themeOptionSelected: {
+    backgroundColor: 'rgba(66, 133, 244, 0.1)',
+  },
+  themeOptionText: {
+    flex: 1,
+    fontSize: 16,
+    marginLeft: 12,
   },
 });
 
