@@ -8,11 +8,14 @@ import {
   TouchableOpacity,
   Dimensions,
   Modal,
+  AccessibilityInfo,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { format, startOfDay, addDays } from 'date-fns';
 import { useTheme } from '../context/ThemeContext';
+import LiquidGlass from '../components/LiquidGlass';
+import AccessibleButton from '../components/AccessibleButton';
 
 const { width, height } = Dimensions.get('window');
 
@@ -103,33 +106,56 @@ const HomeScreen: React.FC = () => {
   }, [theme.colors]);
 
   const renderEventCard = (event: Event) => (
-    <TouchableOpacity key={event.id} style={[styles.eventCard, { backgroundColor: theme.colors.cardBackground, borderColor: theme.colors.cardBorder }]}>
-      <View style={[styles.eventIndicator, { backgroundColor: event.color }]} />
-      <View style={styles.eventContent}>
-        <Text style={[styles.eventTitle, { color: theme.colors.onSurface }]}>{event.title}</Text>
-        <Text style={[styles.eventTime, { color: theme.colors.onSurfaceVariant }]}>{event.time}</Text>
-      </View>
-      <Ionicons name="chevron-forward" size={20} color={theme.colors.onSurfaceVariant} />
-    </TouchableOpacity>
+    <LiquidGlass key={event.id} style={styles.eventCardContainer}>
+      <TouchableOpacity 
+        style={styles.eventCard}
+        accessible={true}
+        accessibilityLabel={`${event.title} at ${event.time}`}
+        accessibilityRole="button"
+        accessibilityHint="Double tap to view event details"
+      >
+        <View style={[styles.eventIndicator, { backgroundColor: event.color }]} />
+        <View style={styles.eventContent}>
+          <Text style={[styles.eventTitle, { color: theme.colors.onSurface }]}>{event.title}</Text>
+          <Text style={[styles.eventTime, { color: theme.colors.onSurfaceVariant }]}>{event.time}</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color={theme.colors.onSurfaceVariant} />
+      </TouchableOpacity>
+    </LiquidGlass>
   );
 
   const renderTaskCard = (task: Task) => (
-    <TouchableOpacity key={task.id} style={[styles.taskCard, { backgroundColor: theme.colors.cardBackground, borderColor: theme.colors.cardBorder }]}>
-      <TouchableOpacity style={[styles.checkbox, task.completed && { backgroundColor: theme.colors.success, borderColor: theme.colors.success }]}>
-        {task.completed && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
-      </TouchableOpacity>
-      <View style={styles.taskContent}>
-        <Text style={[styles.taskTitle, task.completed && styles.taskCompleted, { color: theme.colors.onSurface }]}>
-          {task.title}
-        </Text>
-        {task.dueDate && (
-          <Text style={[styles.taskDueDate, { color: theme.colors.onSurfaceVariant }]}>
-            Due {format(task.dueDate, 'MMM d')}
+    <LiquidGlass key={task.id} style={styles.taskCardContainer}>
+      <TouchableOpacity 
+        style={styles.taskCard}
+        accessible={true}
+        accessibilityLabel={`${task.title}, ${task.completed ? 'completed' : 'not completed'}`}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: task.completed }}
+        accessibilityHint="Double tap to toggle task completion"
+      >
+        <TouchableOpacity 
+          style={[
+            styles.checkbox, 
+            task.completed && { backgroundColor: theme.colors.success, borderColor: theme.colors.success }
+          ]}
+          accessible={false}
+        >
+          {task.completed && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
+        </TouchableOpacity>
+        <View style={styles.taskContent}>
+          <Text style={[styles.taskTitle, task.completed && styles.taskCompleted, { color: theme.colors.onSurface }]}>
+            {task.title}
           </Text>
-        )}
-      </View>
-      <View style={[styles.priorityIndicator, { backgroundColor: getPriorityColor(task.priority) }]} />
-    </TouchableOpacity>
+          {task.dueDate && (
+            <Text style={[styles.taskDueDate, { color: theme.colors.onSurfaceVariant }]}>
+              Due {format(task.dueDate, 'MMM d')}
+            </Text>
+          )}
+        </View>
+        <View style={[styles.priorityIndicator, { backgroundColor: getPriorityColor(task.priority) }]} />
+      </TouchableOpacity>
+    </LiquidGlass>
   );
 
   const getPriorityColor = (priority: string) => {
@@ -151,58 +177,79 @@ const HomeScreen: React.FC = () => {
       transparent
       animationType="fade"
       onRequestClose={() => setShowThemeModal(false)}
+      accessibilityLabel="Theme settings modal"
     >
       <TouchableOpacity 
         style={styles.modalOverlay} 
         activeOpacity={1} 
         onPress={() => setShowThemeModal(false)}
+        accessible={true}
+        accessibilityLabel="Close theme settings"
+        accessibilityRole="button"
       >
-        <View style={[styles.themeModal, { backgroundColor: theme.colors.surface }]}>
-          <Text style={[styles.themeModalTitle, { color: theme.colors.onSurface }]}>Theme Settings</Text>
-          
-          <TouchableOpacity 
-            style={[styles.themeOption, isAutoTheme && styles.themeOptionSelected]} 
-            onPress={() => {
-              // Auto theme logic
-              setShowThemeModal(false);
-            }}
-          >
-            <Ionicons name="phone-portrait" size={24} color={theme.colors.primary} />
-            <Text style={[styles.themeOptionText, { color: theme.colors.onSurface }]}>Auto (System)</Text>
-            {isAutoTheme && <Ionicons name="checkmark" size={20} color={theme.colors.primary} />}
-          </TouchableOpacity>
+        <LiquidGlass style={styles.themeModalContainer}>
+          <View style={styles.themeModal}>
+            <Text style={[styles.themeModalTitle, { color: theme.colors.onSurface }]}>Theme Settings</Text>
+            
+            <TouchableOpacity 
+              style={[styles.themeOption, isAutoTheme && styles.themeOptionSelected]} 
+              onPress={() => {
+                setShowThemeModal(false);
+              }}
+              accessible={true}
+              accessibilityLabel="Auto theme mode"
+              accessibilityRole="radio"
+              accessibilityState={{ selected: isAutoTheme }}
+            >
+              <Ionicons name="phone-portrait" size={24} color={theme.colors.primary} />
+              <Text style={[styles.themeOptionText, { color: theme.colors.onSurface }]}>Auto (System)</Text>
+              {isAutoTheme && <Ionicons name="checkmark" size={20} color={theme.colors.primary} />}
+            </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={[styles.themeOption, !isDark && !isAutoTheme && styles.themeOptionSelected]} 
-            onPress={() => {
-              toggleTheme();
-              setShowThemeModal(false);
-            }}
-          >
-            <Ionicons name="sunny" size={24} color={theme.colors.warning} />
-            <Text style={[styles.themeOptionText, { color: theme.colors.onSurface }]}>Light</Text>
-            {!isDark && !isAutoTheme && <Ionicons name="checkmark" size={20} color={theme.colors.primary} />}
-          </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.themeOption, !isDark && !isAutoTheme && styles.themeOptionSelected]} 
+              onPress={() => {
+                toggleTheme();
+                setShowThemeModal(false);
+              }}
+              accessible={true}
+              accessibilityLabel="Light theme mode"
+              accessibilityRole="radio"
+              accessibilityState={{ selected: !isDark && !isAutoTheme }}
+            >
+              <Ionicons name="sunny" size={24} color={theme.colors.warning} />
+              <Text style={[styles.themeOptionText, { color: theme.colors.onSurface }]}>Light</Text>
+              {!isDark && !isAutoTheme && <Ionicons name="checkmark" size={20} color={theme.colors.primary} />}
+            </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={[styles.themeOption, isDark && !isAutoTheme && styles.themeOptionSelected]} 
-            onPress={() => {
-              toggleTheme();
-              setShowThemeModal(false);
-            }}
-          >
-            <Ionicons name="moon" size={24} color={theme.colors.info} />
-            <Text style={[styles.themeOptionText, { color: theme.colors.onSurface }]}>Dark</Text>
-            {isDark && !isAutoTheme && <Ionicons name="checkmark" size={20} color={theme.colors.primary} />}
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity 
+              style={[styles.themeOption, isDark && !isAutoTheme && styles.themeOptionSelected]} 
+              onPress={() => {
+                toggleTheme();
+                setShowThemeModal(false);
+              }}
+              accessible={true}
+              accessibilityLabel="Dark theme mode"
+              accessibilityRole="radio"
+              accessibilityState={{ selected: isDark && !isAutoTheme }}
+            >
+              <Ionicons name="moon" size={24} color={theme.colors.info} />
+              <Text style={[styles.themeOptionText, { color: theme.colors.onSurface }]}>Dark</Text>
+              {isDark && !isAutoTheme && <Ionicons name="checkmark" size={20} color={theme.colors.primary} />}
+            </TouchableOpacity>
+          </View>
+        </LiquidGlass>
       </TouchableOpacity>
     </Modal>
   );
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        contentInsetAdjustmentBehavior="automatic"
+        accessibilityLabel="Home screen content"
+      >
         {/* Enhanced Header with Advanced Gradients */}
         <LinearGradient
           colors={[theme.colors.gradientStart, theme.colors.gradientEnd, theme.colors.tertiary]}
@@ -219,6 +266,10 @@ const HomeScreen: React.FC = () => {
           <TouchableOpacity 
             style={styles.profileButton} 
             onPress={() => setShowThemeModal(true)}
+            accessible={true}
+            accessibilityLabel="Open theme settings"
+            accessibilityRole="button"
+            accessibilityHint="Double tap to change app theme"
           >
             <LinearGradient
               colors={['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.1)']}
@@ -229,8 +280,8 @@ const HomeScreen: React.FC = () => {
           </TouchableOpacity>
         </LinearGradient>
 
-        {/* Enhanced AI Insight Card */}
-        <View style={[styles.insightCard, { backgroundColor: theme.colors.cardBackground, borderColor: theme.colors.cardBorder }]}>
+        {/* Enhanced AI Insight Card with Liquid Glass */}
+        <LiquidGlass style={styles.insightCardContainer}>
           <LinearGradient
             colors={[theme.colors.primary + '20', theme.colors.secondary + '10']}
             style={styles.insightGradient}
@@ -241,13 +292,17 @@ const HomeScreen: React.FC = () => {
             </View>
             <Text style={[styles.insightText, { color: theme.colors.onSurfaceVariant }]}>{aiInsight}</Text>
           </LinearGradient>
-        </View>
+        </LiquidGlass>
 
         {/* Today's Schedule */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Today's Schedule</Text>
-            <TouchableOpacity>
+            <TouchableOpacity
+              accessible={true}
+              accessibilityLabel="View all events"
+              accessibilityRole="button"
+            >
               <Text style={[styles.seeAllText, { color: theme.colors.primary }]}>See all</Text>
             </TouchableOpacity>
           </View>
@@ -258,18 +313,28 @@ const HomeScreen: React.FC = () => {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Upcoming Tasks</Text>
-            <TouchableOpacity>
+            <TouchableOpacity
+              accessible={true}
+              accessibilityLabel="View all tasks"
+              accessibilityRole="button"
+            >
               <Text style={[styles.seeAllText, { color: theme.colors.primary }]}>See all</Text>
             </TouchableOpacity>
           </View>
           {upcomingTasks.map(renderTaskCard)}
         </View>
 
-        {/* Enhanced Quick Actions */}
+        {/* Enhanced Quick Actions with Liquid Glass */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Quick Actions</Text>
           <View style={styles.quickActions}>
-            <TouchableOpacity style={styles.quickAction}>
+            <TouchableOpacity 
+              style={styles.quickAction}
+              accessible={true}
+              accessibilityLabel="Create new event"
+              accessibilityRole="button"
+              accessibilityHint="Double tap to create a new calendar event"
+            >
               <LinearGradient
                 colors={[theme.colors.primary, theme.colors.primary + 'CC']}
                 style={styles.quickActionIcon}
@@ -278,7 +343,13 @@ const HomeScreen: React.FC = () => {
               </LinearGradient>
               <Text style={[styles.quickActionText, { color: theme.colors.onSurfaceVariant }]}>New Event</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.quickAction}>
+            <TouchableOpacity 
+              style={styles.quickAction}
+              accessible={true}
+              accessibilityLabel="Create new task"
+              accessibilityRole="button"
+              accessibilityHint="Double tap to create a new task"
+            >
               <LinearGradient
                 colors={[theme.colors.secondary, theme.colors.secondary + 'CC']}
                 style={styles.quickActionIcon}
@@ -287,7 +358,13 @@ const HomeScreen: React.FC = () => {
               </LinearGradient>
               <Text style={[styles.quickActionText, { color: theme.colors.onSurfaceVariant }]}>New Task</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.quickAction}>
+            <TouchableOpacity 
+              style={styles.quickAction}
+              accessible={true}
+              accessibilityLabel="Open AI assistant"
+              accessibilityRole="button"
+              accessibilityHint="Double tap to open AI assistant"
+            >
               <LinearGradient
                 colors={[theme.colors.tertiary, theme.colors.tertiary + 'CC']}
                 style={styles.quickActionIcon}
@@ -348,17 +425,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  insightCard: {
+  insightCardContainer: {
     margin: 20,
     marginTop: -20,
-    borderRadius: 20,
-    borderWidth: 1,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
   },
   insightGradient: {
     padding: 20,
@@ -395,18 +464,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
-  eventCard: {
-    borderRadius: 16,
-    padding: 16,
+  eventCardContainer: {
     marginBottom: 8,
+  },
+  eventCard: {
+    padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
   },
   eventIndicator: {
     width: 4,
@@ -425,18 +489,13 @@ const styles = StyleSheet.create({
   eventTime: {
     fontSize: 14,
   },
-  taskCard: {
-    borderRadius: 16,
-    padding: 16,
+  taskCardContainer: {
     marginBottom: 8,
+  },
+  taskCard: {
+    padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
   },
   checkbox: {
     width: 24,
@@ -494,15 +553,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  themeModal: {
+  themeModalContainer: {
     width: width * 0.8,
-    borderRadius: 20,
+  },
+  themeModal: {
     padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    elevation: 10,
   },
   themeModalTitle: {
     fontSize: 20,
