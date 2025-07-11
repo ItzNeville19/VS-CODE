@@ -28,11 +28,6 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": [
-      "expo-calendar",
-      "expo-notifications",
-      "expo-auth-session"
-    ],
     "scheme": "lifeos"
   }
 }
